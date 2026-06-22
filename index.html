@@ -3,9 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Fitness Calculator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            color: #181818;
+            background: #f3f4f6;
+        }
+
+        main {
+            width: min(980px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 40px 0;
+        }
+
+        h1 {
+            margin: 0 0 24px;
+            font-size: 32px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        form,
+        .results {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        input,
+        select,
+        button {
+            width: 100%;
+            min-height: 42px;
+            border-radius: 6px;
+            font: inherit;
+        }
+
+        input,
+        select {
+            border: 1px solid #bbb;
+            padding: 8px 10px;
+            background: #fff;
+        }
+
+        button {
+            border: 0;
+            color: #fff;
+            background: #111827;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .results h2 {
+            margin: 0 0 16px;
+            font-size: 22px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .metric:last-child {
+            border-bottom: 0;
+        }
+
+        .metric span:first-child {
+            color: #555;
+        }
+
+        .metric span:last-child {
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .error {
+            margin-top: 12px;
+            color: #b42318;
+            font-weight: 700;
+        }
+
+        @media (max-width: 760px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    
+    <main>
+        <h1>Fitness Calculator</h1>
+        <div class="layout">
+            <form id="calculator-form">
+                <label>
+                    Age
+                    <input name="age" type="number" min="1" max="120" value="19" required>
+                </label>
+                <label>
+                    Gender
+                    <select name="gender" required>
+                        <option value="male" selected>Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </label>
+                <label>
+                    Height, cm
+                    <input name="height" type="number" min="50" max="260" value="175" required>
+                </label>
+                <label>
+                    Weight, kg
+                    <input name="weight" type="number" min="20" max="400" step="0.1" value="87" required>
+                </label>
+                <label>
+                    Activity level
+                    <select name="activityLevel" required>
+                        <option value="sedentary">Sedentary</option>
+                        <option value="light">Light</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="active">Active</option>
+                        <option value="very_active">Very active</option>
+                    </select>
+                </label>
+                <label>
+                    Goal
+                    <select name="goal" required>
+                        <option value="lose" selected>Lose weight</option>
+                        <option value="maintain">Maintain</option>
+                        <option value="gain">Gain weight</option>
+                    </select>
+                </label>
+                <button type="submit">Calculate</button>
+                <div class="error" id="error" role="alert"></div>
+            </form>
+
+            <section class="results" aria-live="polite">
+                <h2>Results</h2>
+                <div id="results">
+                    <div class="metric"><span>BMI</span><span>-</span></div>
+                    <div class="metric"><span>BMI category</span><span>-</span></div>
+                    <div class="metric"><span>BMR</span><span>-</span></div>
+                    <div class="metric"><span>TDEE</span><span>-</span></div>
+                    <div class="metric"><span>Target calories</span><span>-</span></div>
+                    <div class="metric"><span>Protein</span><span>-</span></div>
+                    <div class="metric"><span>Water</span><span>-</span></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const form = document.querySelector('#calculator-form');
+        const results = document.querySelector('#results');
+        const error = document.querySelector('#error');
+
+        const labels = [
+            ['bmi', 'BMI', ''],
+            ['bmiCategory', 'BMI category', ''],
+            ['bmr', 'BMR', ' kcal'],
+            ['tdee', 'TDEE', ' kcal'],
+            ['targetCalories', 'Target calories', ' kcal'],
+            ['protein', 'Protein', ' g'],
+            ['water', 'Water', ' L'],
+        ];
+
+        function renderResults(data) {
+            results.innerHTML = labels.map(([key, label, suffix]) => `
+                <div class="metric">
+                    <span>${label}</span>
+                    <span>${data[key]}${suffix}</span>
+                </div>
+            `).join('');
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            error.textContent = '';
+
+            const button = form.querySelector('button');
+            const formData = new FormData(form);
+            const payload = {
+                age: Number(formData.get('age')),
+                gender: formData.get('gender'),
+                height: Number(formData.get('height')),
+                weight: Number(formData.get('weight')),
+                activityLevel: formData.get('activityLevel'),
+                goal: formData.get('goal'),
+            };
+
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/FitnessCalculator', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Calculation failed');
+                }
+
+                renderResults(data);
+            } catch (err) {
+                error.textContent = err.message;
+            } finally {
+                button.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
